@@ -3,12 +3,42 @@
  */
 package kernel.track;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import kernel.track.models.KernelCVE;
+
+
 public class App {
-    public String getGreeting() {
-        return "Hello World!";
-    }
 
     public static void main(String[] args) {
-        System.out.println(new App().getGreeting());
+
+        System.out.println(System.getProperty("user.dir"));
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        //map json to KernelCVE
+        try {
+            byte[] jsonData = Files.readAllBytes(Paths.get("kernel_cve.json"));
+            KernelCVE cve = mapper.readValue(jsonData, KernelCVE.class);
+            System.out.println(cve);
+
+            String jsonString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(cve);
+
+            System.out.println(jsonString);
+        } catch (JsonParseException e) {
+            e.printStackTrace();
+        } catch (JsonMappingException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
