@@ -31,4 +31,12 @@ public class KernelCVE {
 
     @JsonProperty("ref_urls")
     private Map<String, String> referenceUrls;
+
+    public boolean isHighOrCritical() {
+        if (cvss3 != null)
+            return cvss3.isCritical() || cvss3.isHigh();
+        if (cvss2 != null)
+            return cvss2.isHigh();
+        return true;
+    }
 }

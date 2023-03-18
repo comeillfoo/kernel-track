@@ -7,7 +7,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class Cvss2 {
+public class Cvss2 implements Cvss {
     @JsonProperty("Access Complexity")
     private String accessComplexity;
 
@@ -26,5 +26,20 @@ public class Cvss2 {
     @JsonProperty("Integrity Impact")
     private String integrityImpact;
 
-    private String score;
+    private double score;
+
+    @Override
+    public boolean isLow() {
+        return score >= 0.0 && score < 4.0;
+    }
+
+    @Override
+    public boolean isMedium() {
+        return score >= 4.0 && score < 7.0;
+    }
+
+    @Override
+    public boolean isHigh() {
+        return score >= 7.0 && score <= 10.0;
+    }
 }

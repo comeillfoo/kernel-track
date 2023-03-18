@@ -6,14 +6,14 @@ package kernel.track;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import kernel.track.models.KernelCVE;
+import kernel.track.utils.StreamPair;
 
 
 public class App {
@@ -28,11 +28,13 @@ public class App {
         try {
             byte[] jsonData = Files.readAllBytes(Paths.get("kernel_cve.json"));
             KernelCVE cve = mapper.readValue(jsonData, KernelCVE.class);
-            System.out.println(cve);
-
+            // System.out.println(cve);
             String jsonString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(cve);
+            // System.out.println(jsonString);
 
-            System.out.println(jsonString);
+            byte[] streamsData = Files.readAllBytes(Paths.get("stream_data.json"));
+            JsonNode streams = mapper.readTree(streamsData);
+            StreamPair sets = StreamPair.of(streams, "5.10.6");
         } catch (JsonParseException e) {
             e.printStackTrace();
         } catch (JsonMappingException e) {
