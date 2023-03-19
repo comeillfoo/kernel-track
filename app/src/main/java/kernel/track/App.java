@@ -3,10 +3,17 @@
  */
 package kernel.track;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
+
+import org.eclipse.jgit.api.CloneCommand;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.lib.StoredConfig;
+import org.eclipse.jgit.transport.HttpTransport;
+import org.eclipse.jgit.transport.http.HttpConnectionFactory;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -15,12 +22,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import kernel.track.models.KernelCVE;
+import kernel.track.utils.InsecureHttpConnectionFactory;
 import kernel.track.utils.StreamPair;
 
 
 public class App {
 
     public static void main(String[] args) {
+        String version = "6.1.20";
 
         System.out.println(System.getProperty("user.dir"));
 
@@ -30,21 +39,39 @@ public class App {
         try {
             byte[] kernelCVEsData = Files.readAllBytes(Paths.get("kernel_cves.json"));
             Map<String, KernelCVE> cves = mapper.readValue(kernelCVEsData, new TypeReference<Map<String, KernelCVE>>() {});
-            cves.forEach((cveid, cve)->{
+            cves.forEach((cveid, cve) -> {
                 cve.setId(cveid);
             });
 
             byte[] streamsData = Files.readAllBytes(Paths.get("stream_data.json"));
             JsonNode streams = mapper.readTree(streamsData);
             // first division by version
-            StreamPair sets = StreamPair.of(streams, "5.10.6");
+            StreamPair sets = StreamPair.of(streams, version);
             System.out.println(String.format("Fixed: %d, unfixed: %d", sets.FIXED.size(), sets.UNFIXED.size()));
 
             // second division by severity
             sets.FIXED.removeIf((cveid) -> !cves.get(cveid).isHighOrCritical());
             sets.UNFIXED.removeIf((cveid) -> !cves.get(cveid).isHighOrCritical());
-
             System.out.println(String.format("Fixed: %d, unfixed: %d", sets.FIXED.size(), sets.UNFIXED.size()));
+
+            // third division by commits
+            try {
+                byte[] fixesData = Files.readAllBytes(Paths.get("stream_fixes.json"));
+                JsonNode fixes = mapper.readTree(fixesData);
+                // HttpConnectionFactory oldFactory = HttpTransport.getConnectionFactory();
+                // HttpTransport.setConnectionFactory(new InsecureHttpConnectionFactory());
+                // // clone repo
+                // Git kernel = Git.cloneRepository()
+                //     .setURI(someURL)
+                //     .call();
+                // HttpTransport.setConnectionFactory(oldFactory);
+                Git kernel = Git.open(new File("./linux"));
+                sets.divideBy(fixes, version, kernel);
+                kernel.close();
+                System.out.println(String.format("Fixed: %d, unfixed: %d", sets.FIXED.size(), sets.UNFIXED.size()));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         } catch (JsonParseException e) {
             e.printStackTrace();
         } catch (JsonMappingException e) {

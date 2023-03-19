@@ -2,8 +2,6 @@ package kernel.track.models;
 
 import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.Getter;
 import lombok.Setter;
