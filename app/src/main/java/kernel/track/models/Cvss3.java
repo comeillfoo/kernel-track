@@ -2,12 +2,14 @@ package kernel.track.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 
 @Getter
 @Setter
-public class Cvss3 implements Cvss {
+@NoArgsConstructor
+public class Cvss3 extends Cvss {
     @JsonProperty("Attack Complexity")
     private String attackComplexity;
 
@@ -32,29 +34,30 @@ public class Cvss3 implements Cvss {
     @JsonProperty("User Interaction")
     private String userInteraction;
 
-    private double score;
-
     public boolean isNone() {
-        return score == 0.0;
+        return getScore() == 0.0;
     }
 
     @Override
     public boolean isLow() {
-        return score > 0.0 && score < 4.0;
+        return getScore() > 0.0 && getScore() < 4.0;
     }
 
     @Override
     public boolean isMedium() {
-        return score >= 4.0 && score < 7.0;
+        return getScore() >= 4.0 && getScore() < 7.0;
     }
 
     @Override
     public boolean isHigh() {
-        return score >= 7.0 && score < 9.0;
+        return getScore() >= 7.0 && getScore() < 9.0;
     }
 
     public boolean isCritical() {
-        return score >= 9.0 && score <= 10.0;
+        return getScore() >= 9.0 && getScore() <= 10.0;
     }
 
+    public Cvss3(String value) {
+        setScore(Double.parseDouble(value));
+    }
 }

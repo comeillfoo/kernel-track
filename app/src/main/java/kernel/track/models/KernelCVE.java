@@ -2,6 +2,9 @@ package kernel.track.models;
 
 import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,8 +13,13 @@ import lombok.Setter;
 @Setter
 public class KernelCVE {
 
+    private String id;
+
     @JsonProperty("affected_versions")
     private String affectedVersions;
+
+    @JsonProperty("alt_msg")
+    private String alternativeMessage;
 
     private boolean backport;
     private String breaks;
@@ -27,10 +35,26 @@ public class KernelCVE {
 
     private String fixes;
 
+    @JsonProperty("last_affected_version")
+    private String lastAffectedVersion;
+
+    @JsonProperty("last_modified")
+    private String lastModified;
+
+    @JsonProperty("new")
+    private String isNew;
+
+    private String name;
+
     private String nvd_text;
 
     @JsonProperty("ref_urls")
     private Map<String, String> referenceUrls;
+
+    @JsonProperty("vendor_specific")
+    private boolean vendorSpecific;
+
+    private boolean rejected;
 
     public boolean isHighOrCritical() {
         if (cvss3 != null)

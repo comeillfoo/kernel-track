@@ -6,8 +6,10 @@ package kernel.track;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,15 +28,23 @@ public class App {
 
         //map json to KernelCVE
         try {
-            byte[] jsonData = Files.readAllBytes(Paths.get("kernel_cve.json"));
-            KernelCVE cve = mapper.readValue(jsonData, KernelCVE.class);
-            // System.out.println(cve);
-            String jsonString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(cve);
-            // System.out.println(jsonString);
+            byte[] kernelCVEsData = Files.readAllBytes(Paths.get("kernel_cves.json"));
+            Map<String, KernelCVE> cves = mapper.readValue(kernelCVEsData, new TypeReference<Map<String, KernelCVE>>() {});
+            cves.forEach((cveid, cve)->{
+                cve.setId(cveid);
+            });
 
             byte[] streamsData = Files.readAllBytes(Paths.get("stream_data.json"));
             JsonNode streams = mapper.readTree(streamsData);
+            // first division by version
             StreamPair sets = StreamPair.of(streams, "5.10.6");
+            System.out.println(String.format("Fixed: %d, unfixed: %d", sets.FIXED.size(), sets.UNFIXED.size()));
+
+            // second division by severity
+            sets.FIXED.removeIf((cveid) -> !cves.get(cveid).isHighOrCritical());
+            sets.UNFIXED.removeIf((cveid) -> !cves.get(cveid).isHighOrCritical());
+
+            System.out.println(String.format("Fixed: %d, unfixed: %d", sets.FIXED.size(), sets.UNFIXED.size()));
         } catch (JsonParseException e) {
             e.printStackTrace();
         } catch (JsonMappingException e) {
