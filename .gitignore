@@ -10,4 +10,6 @@ bin
 # Ignore VS Code dir
 .vscode
 
-
+linux
+*.json
+linux_kernel_cves

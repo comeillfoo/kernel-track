@@ -27,6 +27,8 @@ dependencies {
 
     implementation group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '6.5.0.202303070854-r'
 
+    implementation group: 'org.jsoup', name: 'jsoup', version: '1.15.4'
+
 
     compileOnly 'org.projectlombok:lombok:1.18.26'
 	annotationProcessor 'org.projectlombok:lombok:1.18.26'

@@ -7,6 +7,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import org.eclipse.jgit.api.CloneCommand;
@@ -21,6 +23,10 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import kernel.track.mitigators.DebianMitigator;
+import kernel.track.mitigators.Mitigator;
+import kernel.track.mitigators.RedHatMitigator;
+import kernel.track.mitigators.UbuntuMitigator;
 import kernel.track.models.KernelCVE;
 import kernel.track.utils.InsecureHttpConnectionFactory;
 import kernel.track.utils.StreamPair;
@@ -72,6 +78,20 @@ public class App {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+            sets.UNFIXED.forEach((cveid) -> {
+                List<Mitigator> mitigators = Arrays.asList(
+                    new DebianMitigator(),
+                    new UbuntuMitigator(),
+                    new RedHatMitigator()
+                );
+                System.out.println(cveid);
+                mitigators.stream()
+                    .map((mitigator)->mitigator.searchMitigation(cveid))
+                    .forEach((mitigation)->{
+                        System.out.println(mitigation);
+                    });
+                System.out.println();
+            });
         } catch (JsonParseException e) {
             e.printStackTrace();
         } catch (JsonMappingException e) {
