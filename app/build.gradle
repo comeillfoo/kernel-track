@@ -29,6 +29,9 @@ dependencies {
 
     implementation group: 'org.jsoup', name: 'jsoup', version: '1.15.4'
 
+    implementation group: 'com.opencsv', name: 'opencsv', version: '5.7.1'
+
+
 
     compileOnly 'org.projectlombok:lombok:1.18.26'
 	annotationProcessor 'org.projectlombok:lombok:1.18.26'

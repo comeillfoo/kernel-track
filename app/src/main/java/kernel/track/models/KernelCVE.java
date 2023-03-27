@@ -61,4 +61,12 @@ public class KernelCVE {
             return cvss2.isHigh();
         return true;
     }
+
+    public double getCvssScore() {
+        if (cvss3 != null)
+            return cvss3.getScore();
+        if (cvss2 != null)
+            return cvss2.getScore();
+        return 99.9;
+    }
 }

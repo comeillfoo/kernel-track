@@ -4,35 +4,49 @@
 package kernel.track;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.lib.StoredConfig;
-import org.eclipse.jgit.transport.HttpTransport;
-import org.eclipse.jgit.transport.http.HttpConnectionFactory;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.opencsv.CSVWriter;
+import com.opencsv.bean.StatefulBeanToCsv;
+import com.opencsv.bean.StatefulBeanToCsvBuilder;
+import com.opencsv.exceptions.CsvDataTypeMismatchException;
+import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 
-import kernel.track.mitigators.DebianMitigator;
-import kernel.track.mitigators.Mitigator;
-import kernel.track.mitigators.RedHatMitigator;
-import kernel.track.mitigators.UbuntuMitigator;
+import kernel.track.models.CVEBean;
 import kernel.track.models.KernelCVE;
-import kernel.track.utils.InsecureHttpConnectionFactory;
 import kernel.track.utils.StreamPair;
 
 
 public class App {
+
+    public static void writeCsvFromBeans(Path path, List<CVEBean> beans) {
+        try (Writer writer = new FileWriter(path.toString())) {
+            StatefulBeanToCsv<CVEBean> sbc = new StatefulBeanToCsvBuilder<CVEBean>(writer)
+                .withQuotechar('\'')
+                .withSeparator(CSVWriter.DEFAULT_SEPARATOR)
+                .build();
+
+            sbc.write(beans);
+        } catch (IOException|CsvDataTypeMismatchException|CsvRequiredFieldEmptyException e) {
+            e.printStackTrace();
+        }
+    }
 
     public static void main(String[] args) {
         String version = "6.1.20";
@@ -78,20 +92,17 @@ public class App {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            sets.UNFIXED.forEach((cveid) -> {
-                List<Mitigator> mitigators = Arrays.asList(
-                    new DebianMitigator(),
-                    new UbuntuMitigator(),
-                    new RedHatMitigator()
-                );
-                System.out.println(cveid);
-                mitigators.stream()
-                    .map((mitigator)->mitigator.searchMitigation(cveid))
-                    .forEach((mitigation)->{
-                        System.out.println(mitigation);
-                    });
-                System.out.println();
-            });
+
+            // convert to dumpable beans
+            final List<CVEBean> table = Stream.concat(
+                sets.FIXED
+                    .stream()
+                    .map((cveid) -> new CVEBean(cves.get(cveid), true)),
+                sets.UNFIXED
+                    .stream()
+                    .map((cveid) -> new CVEBean(cves.get(cveid), false)))
+                .collect(Collectors.toList());
+            writeCsvFromBeans(Paths.get("./report.csv"), table);
         } catch (JsonParseException e) {
             e.printStackTrace();
         } catch (JsonMappingException e) {
