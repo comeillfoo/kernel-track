@@ -44,7 +44,8 @@ public class KernelCVE {
 
     private String name;
 
-    private String nvd_text;
+    @JsonProperty("nvd_text")
+    private String nvdText;
 
     @JsonProperty("ref_urls")
     private Map<String, String> referenceUrls;

@@ -36,12 +36,16 @@ import kernel.track.utils.StreamPair;
 public class App {
 
     public static void writeCsvFromBeans(Path path, List<CVEBean> beans) {
+        final char separator = ';';
         try (Writer writer = new FileWriter(path.toString())) {
             StatefulBeanToCsv<CVEBean> sbc = new StatefulBeanToCsvBuilder<CVEBean>(writer)
-                .withQuotechar('\'')
-                .withSeparator(CSVWriter.DEFAULT_SEPARATOR)
+                .withSeparator(separator)
                 .build();
-
+            writer.write(String.join(
+                String.valueOf(separator),
+                Stream.of(CVEBean.HEADER)
+                    .map((column) -> "\"" + column + "\"")
+                    .toArray(String[]::new)) + "\n");
             sbc.write(beans);
         } catch (IOException|CsvDataTypeMismatchException|CsvRequiredFieldEmptyException e) {
             e.printStackTrace();
