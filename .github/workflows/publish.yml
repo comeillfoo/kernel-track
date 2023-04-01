@@ -25,6 +25,6 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: kernel-track
-          path: app/build/libs/kernel-track.jar
+          path: app/build/libs/kernel_track.jar
 
 
