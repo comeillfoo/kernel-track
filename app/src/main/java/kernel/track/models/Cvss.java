@@ -10,7 +10,15 @@ public abstract class Cvss {
 
     private double score;
 
-    public abstract boolean isLow();
-    public abstract boolean isMedium();
-    public abstract boolean isHigh();
+    public boolean isLow() {
+        return getScore() > 0.0 && getScore() < 4.0;
+    }
+
+    public boolean isMedium() {
+        return getScore() >= 4.0 && getScore() < 7.0;
+    }
+
+    public boolean isHigh() {
+        return getScore() >= 7.0 && getScore() < 9.0;
+    }
 }

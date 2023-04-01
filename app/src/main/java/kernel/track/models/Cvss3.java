@@ -38,21 +38,6 @@ public class Cvss3 extends Cvss {
         return getScore() == 0.0;
     }
 
-    @Override
-    public boolean isLow() {
-        return getScore() > 0.0 && getScore() < 4.0;
-    }
-
-    @Override
-    public boolean isMedium() {
-        return getScore() >= 4.0 && getScore() < 7.0;
-    }
-
-    @Override
-    public boolean isHigh() {
-        return getScore() >= 7.0 && getScore() < 9.0;
-    }
-
     public boolean isCritical() {
         return getScore() >= 9.0 && getScore() <= 10.0;
     }
