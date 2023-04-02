@@ -14,7 +14,9 @@ public class DebianMitigator extends StubMitigator {
         Document cvePage = Jsoup.parse(html);
         Element notesHeader = cvePage.selectFirst("h2:contains(Notes)");
         if (notesHeader == null) return "";
-        return notesHeader.nextElementSibling().text();
+        Element notes = notesHeader.nextElementSibling();
+        if (notes == null) return "";
+        return notes.text();
     }
 
 }

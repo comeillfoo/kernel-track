@@ -1,0 +1,23 @@
+<Configuration status="debug" name="kernel-track" packages="">
+    <Properties>
+        <Property name="LOG_DIR">logs</Property>
+        <Property name="PATTERN">%d{yyyy-MM-dd HH:mm:ss} %p %m%n</Property>
+    </Properties>
+    <Appenders>
+        <Console name="stdout" target="SYSTEM_OUT">
+            <PatternLayout pattern="${PATTERN}"/>
+        </Console>
+        <RollingFile name="logfile" fileName="${LOG_DIR}/ktrack.log" filePattern="${LOG_DIR}/ktrack-%d{MM.dd-HH.mm}.log">
+            <PatternLayout pattern="${PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+            </Policies>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <Root level="INFO">
+            <AppenderRef ref="stdout" />
+            <AppenderRef ref="logfile" />
+        </Root>
+    </Loggers>
+</Configuration>

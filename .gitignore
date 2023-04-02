@@ -10,6 +10,10 @@ bin
 # Ignore VS Code dir
 .vscode
 
+# Ignore dependencies
 linux
 *.json
 linux_kernel_cves
+
+# Ignore logging folder
+logs

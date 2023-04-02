@@ -1,12 +1,6 @@
 package kernel.track.models;
 
-import java.util.List;
-
-import com.opencsv.bean.ColumnPositionMappingStrategy;
-import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.CsvBindByPosition;
-import com.opencsv.bean.CsvNumber;
-import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 
 import kernel.track.mitigators.DebianMitigator;
 import kernel.track.mitigators.RedHatMitigator;
@@ -68,4 +62,12 @@ public class CVEBean {
         "Description", "Status", "Patch", "Debian Mitigation",
         "Ubuntu Mitigation", "Red Hat Mitigation"
     };
+
+    public static CVEBean fixedOf(KernelCVE cve) {
+        return new CVEBean(cve, true);
+    }
+
+    public static CVEBean unfixedOf(KernelCVE cve) {
+        return new CVEBean(cve, false);
+    }
 }

@@ -12,9 +12,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.eclipse.jgit.api.Git;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -22,7 +25,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.opencsv.CSVWriter;
 import com.opencsv.bean.StatefulBeanToCsv;
 import com.opencsv.bean.StatefulBeanToCsvBuilder;
 import com.opencsv.exceptions.CsvDataTypeMismatchException;
@@ -30,10 +32,14 @@ import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 
 import kernel.track.models.CVEBean;
 import kernel.track.models.KernelCVE;
+import kernel.track.models.KernelVersion;
+import kernel.track.repositories.KernelCVERepository;
 import kernel.track.utils.StreamPair;
 
 
 public class App {
+
+    private static final Logger logger = LogManager.getLogger(App.class);
 
     public static void writeCsvFromBeans(Path path, List<CVEBean> beans) {
         final char separator = ';';
@@ -52,36 +58,33 @@ public class App {
         }
     }
 
+    private static void usage(String[] args) {
+        logger.warn("Usage: java -jar kernel_track.jar [path_to_kernel] [path_to_linuxkernelcves_data]");
+    }
+
     public static void main(String[] args) {
-        String version = "6.1.20";
+        // if (args.length < 3) {
+        //     usage(args);
+        //     return;
+        // }
 
-        System.out.println(System.getProperty("user.dir"));
-
-        ObjectMapper mapper = new ObjectMapper();
-
-        //map json to KernelCVE
+        final String rawVersion = "6.1.20";
+        final KernelVersion version = new KernelVersion(rawVersion);
         try {
-            byte[] kernelCVEsData = Files.readAllBytes(Paths.get("kernel_cves.json"));
-            Map<String, KernelCVE> cves = mapper.readValue(kernelCVEsData, new TypeReference<Map<String, KernelCVE>>() {});
-            cves.forEach((cveid, cve) -> {
-                cve.setId(cveid);
-            });
-
-            byte[] streamsData = Files.readAllBytes(Paths.get("stream_data.json"));
-            JsonNode streams = mapper.readTree(streamsData);
+            KernelCVERepository repo = new KernelCVERepository(Paths.get("."));
             // first division by version
-            StreamPair sets = StreamPair.of(streams, version);
+            StreamPair sets = new StreamPair(
+                repo.selectFromStreamDataNotGreaterThan(version),
+                repo.selectFromStreamDataGreaterThan(version));
             System.out.println(String.format("Fixed: %d, unfixed: %d", sets.FIXED.size(), sets.UNFIXED.size()));
 
             // second division by severity
-            sets.FIXED.removeIf((cveid) -> !cves.get(cveid).isHighOrCritical());
-            sets.UNFIXED.removeIf((cveid) -> !cves.get(cveid).isHighOrCritical());
+            repo.retainIf(sets.FIXED, KernelCVE::isHighOrCritical);
+            repo.retainIf(sets.UNFIXED, KernelCVE::isHighOrCritical);
             System.out.println(String.format("Fixed: %d, unfixed: %d", sets.FIXED.size(), sets.UNFIXED.size()));
 
             // third division by commits
             try {
-                byte[] fixesData = Files.readAllBytes(Paths.get("stream_fixes.json"));
-                JsonNode fixes = mapper.readTree(fixesData);
                 // HttpConnectionFactory oldFactory = HttpTransport.getConnectionFactory();
                 // HttpTransport.setConnectionFactory(new InsecureHttpConnectionFactory());
                 // // clone repo
@@ -90,7 +93,7 @@ public class App {
                 //     .call();
                 // HttpTransport.setConnectionFactory(oldFactory);
                 Git kernel = Git.open(new File("./linux"));
-                sets.divideBy(fixes, version, kernel);
+                sets.FIXED.addAll(repo.whereFixed(sets.UNFIXED, version, kernel));
                 kernel.close();
                 System.out.println(String.format("Fixed: %d, unfixed: %d", sets.FIXED.size(), sets.UNFIXED.size()));
             } catch (Exception e) {
@@ -101,10 +104,12 @@ public class App {
             final List<CVEBean> table = Stream.concat(
                 sets.FIXED
                     .stream()
-                    .map((cveid) -> new CVEBean(cves.get(cveid), true)),
+                    .map(repo::selectById)
+                    .map(CVEBean::fixedOf),
                 sets.UNFIXED
                     .stream()
-                    .map((cveid) -> new CVEBean(cves.get(cveid), false)))
+                    .map(repo::selectById)
+                    .map(CVEBean::unfixedOf))
                 .collect(Collectors.toList());
             writeCsvFromBeans(Paths.get("./report.csv"), table);
         } catch (JsonParseException e) {
