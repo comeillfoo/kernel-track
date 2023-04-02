@@ -7,12 +7,9 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -21,10 +18,7 @@ import org.apache.logging.log4j.Logger;
 import org.eclipse.jgit.api.Git;
 
 import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opencsv.bean.StatefulBeanToCsv;
 import com.opencsv.bean.StatefulBeanToCsvBuilder;
 import com.opencsv.exceptions.CsvDataTypeMismatchException;
@@ -63,15 +57,18 @@ public class App {
     }
 
     public static void main(String[] args) {
-        // if (args.length < 3) {
-        //     usage(args);
-        //     return;
-        // }
+        if (args.length < 2) {
+            usage(args);
+            return;
+        }
 
-        final String rawVersion = "6.1.20";
-        final KernelVersion version = new KernelVersion(rawVersion);
+        final Path pathToKernel = Paths.get(args[0]);
+        final Path pathToLinuxKernelCVEsData = Paths.get(args[1]);
+
         try {
-            KernelCVERepository repo = new KernelCVERepository(Paths.get("."));
+            final KernelVersion version = new KernelVersion(pathToKernel);
+            final KernelCVERepository repo = new KernelCVERepository(pathToLinuxKernelCVEsData);
+
             // first division by version
             StreamPair sets = new StreamPair(
                 repo.selectFromStreamDataNotGreaterThan(version),
@@ -92,7 +89,7 @@ public class App {
                 //     .setURI(someURL)
                 //     .call();
                 // HttpTransport.setConnectionFactory(oldFactory);
-                Git kernel = Git.open(new File("./linux"));
+                Git kernel = Git.open(pathToKernel.toFile());
                 sets.FIXED.addAll(repo.whereFixed(sets.UNFIXED, version, kernel));
                 kernel.close();
                 System.out.println(String.format("Fixed: %d, unfixed: %d", sets.FIXED.size(), sets.UNFIXED.size()));
@@ -112,11 +109,7 @@ public class App {
                     .map(CVEBean::unfixedOf))
                 .collect(Collectors.toList());
             writeCsvFromBeans(Paths.get("./report.csv"), table);
-        } catch (JsonParseException e) {
-            e.printStackTrace();
-        } catch (JsonMappingException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
