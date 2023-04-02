@@ -52,9 +52,9 @@ public class CVEBean {
         this.description = cve.getNvdText();
         this.status = isFixed ? "Fixed" : "Unfixed";
         this.patch = cve.getFixes();
-        this.debianMitigation = ""; // new DebianMitigator().searchMitigation(cveid);
-        this.ubuntuMitigation = ""; // new UbuntuMitigator().searchMitigation(cveid);
-        this.redHatMitigation = ""; // new RedHatMitigator().searchMitigation(cveid);
+        this.debianMitigation = new DebianMitigator().searchMitigation(cveid);
+        this.ubuntuMitigation = new UbuntuMitigator().searchMitigation(cveid);
+        this.redHatMitigation = new RedHatMitigator().searchMitigation(cveid);
     }
 
     public static final String[] HEADER = new String[] {
