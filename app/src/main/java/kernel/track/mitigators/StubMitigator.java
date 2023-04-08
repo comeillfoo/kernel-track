@@ -6,23 +6,35 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
 
-public class StubMitigator implements Mitigator {
-    protected String getHTML(String domain, String cveid) {
-        try {
-            final String uri = domain + cveid;
-            URLConnection conn = new URL(uri).openConnection();
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-            BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            StringBuilder sb = new StringBuilder();
+public class StubMitigator implements Mitigator {
+    private final Logger logger = LogManager.getLogger(getClass());
+
+    protected String getHTML(String domain, String cveid) {
+        final String uri = domain + cveid;
+        URLConnection conn = null;
+        try {
+            conn = new URL(uri).openConnection();
+        } catch (IOException ioe) {
+            logger.error(String.format("[%s]: error while opening connection to %s", cveid, uri), ioe);
+            return "";
+        }
+        BufferedReader br = null;
+        StringBuilder sb = null;
+        try {
+            br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            sb = new StringBuilder();
             String line = "";
             while ((line = br.readLine()) != null)
                 sb.append(line);
             br.close();
-            return sb.toString();
-        } catch (IOException io) {
-            io.printStackTrace();
+        } catch (IOException ioe) {
+            logger.error(String.format("[%s]: error while ackquiring HTML at %s", cveid, uri), ioe);
             return "";
         }
+        return sb.toString();
     }
 
     @Override

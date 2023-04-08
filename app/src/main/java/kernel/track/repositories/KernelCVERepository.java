@@ -9,7 +9,11 @@ import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.errors.IncorrectObjectTypeException;
+import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
@@ -23,6 +27,8 @@ import kernel.track.models.KernelCVE;
 import kernel.track.models.KernelVersion;
 
 public class KernelCVERepository {
+    private static final Logger logger = LogManager.getLogger(KernelCVERepository.class);
+
     private final Map<String, KernelCVE> kernelCVEs;
     private final Map<String, Map<String, Map<String, Map<String, String>>>> streamData;
     private final Map<String, Map<String, Map<String, String>>> streamFixes;
@@ -86,9 +92,12 @@ public class KernelCVERepository {
                     filtered.add(id);
                     return true;
                 }
-            } catch (Exception e) {
-                // TODO: add logging or add throws
-                e.printStackTrace();
+            } catch (MissingObjectException moe) {
+                logger.error(String.format("[%s]: supplied commit %s does not exist", id, fixCommit), moe);
+            } catch (IncorrectObjectTypeException iote) {
+                logger.error(String.format("[%s]: supplied id %s is not a commit or annotated tag", id, fixCommit), iote);
+            } catch (IOException ioe) {
+                logger.error(String.format("[%s]: io error occured while parsing commit %s", id, fixCommit), ioe);
             }
             return false;
         });

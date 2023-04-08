@@ -1,6 +1,17 @@
 package kernel.track.models;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.stream.Stream;
+
 import com.opencsv.bean.CsvBindByPosition;
+import com.opencsv.bean.StatefulBeanToCsv;
+import com.opencsv.bean.StatefulBeanToCsvBuilder;
+import com.opencsv.exceptions.CsvDataTypeMismatchException;
+import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 
 import kernel.track.mitigators.DebianMitigator;
 import kernel.track.mitigators.RedHatMitigator;
@@ -69,5 +80,20 @@ public class CVEBean {
 
     public static CVEBean unfixedOf(KernelCVE cve) {
         return new CVEBean(cve, false);
+    }
+
+    public static void dumpToCsv(Path table, List<CVEBean> beans) throws IOException, CsvDataTypeMismatchException, CsvRequiredFieldEmptyException {
+        final char separator = ';';
+        try (Writer writer = new FileWriter(table.toString())) {
+            StatefulBeanToCsv<CVEBean> sbc = new StatefulBeanToCsvBuilder<CVEBean>(writer)
+                .withSeparator(separator)
+                .build();
+            writer.write(String.join(
+                String.valueOf(separator),
+                Stream.of(CVEBean.HEADER)
+                    .map((column) -> "\"" + column + "\"")
+                    .toArray(String[]::new)) + "\n");
+            sbc.write(beans);
+        }
     }
 }

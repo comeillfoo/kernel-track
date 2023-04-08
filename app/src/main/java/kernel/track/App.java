@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.ParseException;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -17,10 +18,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.eclipse.jgit.api.Git;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.opencsv.bean.StatefulBeanToCsv;
-import com.opencsv.bean.StatefulBeanToCsvBuilder;
+import com.fasterxml.jackson.core.exc.StreamReadException;
+import com.fasterxml.jackson.databind.DatabindException;
 import com.opencsv.exceptions.CsvDataTypeMismatchException;
 import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 
@@ -35,23 +34,6 @@ public class App {
 
     private static final Logger logger = LogManager.getLogger(App.class);
 
-    public static void writeCsvFromBeans(Path path, List<CVEBean> beans) {
-        final char separator = ';';
-        try (Writer writer = new FileWriter(path.toString())) {
-            StatefulBeanToCsv<CVEBean> sbc = new StatefulBeanToCsvBuilder<CVEBean>(writer)
-                .withSeparator(separator)
-                .build();
-            writer.write(String.join(
-                String.valueOf(separator),
-                Stream.of(CVEBean.HEADER)
-                    .map((column) -> "\"" + column + "\"")
-                    .toArray(String[]::new)) + "\n");
-            sbc.write(beans);
-        } catch (IOException|CsvDataTypeMismatchException|CsvRequiredFieldEmptyException e) {
-            e.printStackTrace();
-        }
-    }
-
     private static void usage(String[] args) {
         logger.warn("Usage: java -jar kernel_track.jar [path_to_kernel] [path_to_linuxkernelcves_data]");
     }
@@ -61,43 +43,58 @@ public class App {
             usage(args);
             return;
         }
-
-        final Path pathToKernel = Paths.get(args[0]);
-        final Path pathToLinuxKernelCVEsData = Paths.get(args[1]);
-
+        logger.info("Starting analyzing kernel at {} using {}", args[0], args[1]);
         try {
-            final KernelVersion version = new KernelVersion(pathToKernel);
-            final KernelCVERepository repo = new KernelCVERepository(pathToLinuxKernelCVEsData);
+            final Path pathToKernel = Paths.get(args[0]);
+            final Path pathToLinuxKernelCVEsData = Paths.get(args[1]);
+            KernelVersion version = null;
+            try {
+                version = new KernelVersion(pathToKernel);
+            } catch (IOException|ParseException ioe) {
+                logger.error("while parsing kernel version", ioe);
+                System.exit(1);
+            }
+            logger.info("Found kernel v{} at {}", version, pathToKernel);
+
+            KernelCVERepository repo = null;
+            try {
+                repo = new KernelCVERepository(pathToLinuxKernelCVEsData);
+            } catch (IOException e) {
+                logger.error(String.format("on parsing JSONs at %s", pathToLinuxKernelCVEsData.toString()), e);
+                System.exit(1);
+            }
 
             // first division by version
+            logger.info("Starting first division by version using stream_data.json...");
             StreamPair sets = new StreamPair(
                 repo.selectFromStreamDataNotGreaterThan(version),
                 repo.selectFromStreamDataGreaterThan(version));
-            System.out.println(String.format("Fixed: %d, unfixed: %d", sets.FIXED.size(), sets.UNFIXED.size()));
+            logger.info("Fixed: {}; unfixed: {}", sets.FIXED.size(), sets.UNFIXED.size());
+            logger.info("First division by version finished successfully");
 
             // second division by severity
+            logger.info("Starting second division by severity... (CVSS Score not less than 7.0)");
             repo.retainIf(sets.FIXED, KernelCVE::isHighOrCritical);
             repo.retainIf(sets.UNFIXED, KernelCVE::isHighOrCritical);
-            System.out.println(String.format("Fixed: %d, unfixed: %d", sets.FIXED.size(), sets.UNFIXED.size()));
+            logger.info("Fixed: {}; unfixed: {}", sets.FIXED.size(), sets.UNFIXED.size());
+            logger.info("Second division by severity finished successfully");
 
             // third division by commits
+            logger.info("Starting third division by commits using stream_fixes.json...");
             try {
-                // HttpConnectionFactory oldFactory = HttpTransport.getConnectionFactory();
-                // HttpTransport.setConnectionFactory(new InsecureHttpConnectionFactory());
-                // // clone repo
-                // Git kernel = Git.cloneRepository()
-                //     .setURI(someURL)
-                //     .call();
-                // HttpTransport.setConnectionFactory(oldFactory);
                 Git kernel = Git.open(pathToKernel.toFile());
                 sets.FIXED.addAll(repo.whereFixed(sets.UNFIXED, version, kernel));
                 kernel.close();
-                System.out.println(String.format("Fixed: %d, unfixed: %d", sets.FIXED.size(), sets.UNFIXED.size()));
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (IOException e) {
+                logger.error(String.format(
+                    "Third division by commits failed while opening local git kernel repository at %s",
+                    pathToKernel.toString()), e);
             }
+            logger.info("Fixed: {}; unfixed: {}", sets.FIXED.size(), sets.UNFIXED.size());
+            logger.info("Third division by commits finished successfully");
 
             // convert to dumpable beans
+            logger.info("Starting conversion to dumpable beans...");
             final List<CVEBean> table = Stream.concat(
                 sets.FIXED
                     .stream()
@@ -108,9 +105,17 @@ public class App {
                     .map(repo::selectById)
                     .map(CVEBean::unfixedOf))
                 .collect(Collectors.toList());
-            writeCsvFromBeans(Paths.get("./report.csv"), table);
+            logger.info("Conversion to dumpable beans finished. Saving {} beans to CSV-table...", table.size());
+            final Path outputPath = Paths.get("./report-v" + version.toString() + ".csv");
+            try {
+                CVEBean.dumpToCsv(outputPath, table);
+            } catch (IOException|CsvDataTypeMismatchException|CsvRequiredFieldEmptyException e) {
+                logger.error(String.format("Failed to save csv at %s", outputPath.toString()), e);
+            }
+            logger.info("Saving successfully completed to {}", outputPath.toString());
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Failed to analyze kernel; unexpected error occured", e);
         }
+        logger.info("Kernel successfully analyzed");
     }
 }

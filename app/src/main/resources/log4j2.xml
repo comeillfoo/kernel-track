@@ -1,7 +1,7 @@
 <Configuration status="debug" name="kernel-track" packages="">
     <Properties>
         <Property name="LOG_DIR">logs</Property>
-        <Property name="PATTERN">%d{yyyy-MM-dd HH:mm:ss} %p %m%n</Property>
+        <Property name="PATTERN">%d{yyyy-MM-dd HH:mm:ss} [%t] %p %c %m%n</Property>
     </Properties>
     <Appenders>
         <Console name="stdout" target="SYSTEM_OUT">
