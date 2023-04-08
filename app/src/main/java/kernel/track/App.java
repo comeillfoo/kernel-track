@@ -111,10 +111,12 @@ public class App {
                 CVEBean.dumpToCsv(outputPath, table);
             } catch (IOException|CsvDataTypeMismatchException|CsvRequiredFieldEmptyException e) {
                 logger.error(String.format("Failed to save csv at %s", outputPath.toString()), e);
+                System.exit(1);
             }
             logger.info("Saving successfully completed to {}", outputPath.toString());
         } catch (Exception e) {
             logger.error("Failed to analyze kernel; unexpected error occured", e);
+            System.exit(1);
         }
         logger.info("Kernel successfully analyzed");
     }
