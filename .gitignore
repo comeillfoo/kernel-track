@@ -1,2 +1,2 @@
-# Ignore VS Code dir
-.vscode
+.*
+!.gitignore
