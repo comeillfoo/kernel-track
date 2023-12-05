@@ -2,7 +2,6 @@
 from typing import Tuple
 import requests, json
 from bs4 import BeautifulSoup
-from pprint import pprint
 
 
 class LxKernelCve:
