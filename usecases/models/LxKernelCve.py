@@ -7,16 +7,24 @@ from bs4 import BeautifulSoup
 class LxKernelCve:
     @classmethod
     def parse_affected_versions(cls, affected_versions: str) -> Tuple[str, str]:
-        return ''
+        affected_versions = affected_versions.strip().split(' to ')
+        return [
+            ('unk', 'unk'),
+            (affected_versions[0], 'unk'),
+            tuple(affected_versions)
+        ][len(affected_versions)]
 
 
     def __init__(self, cveid: str, cvedata: dict):
         self.id = cveid.lstrip('CVE-')
+        # affected versions info
         self.affected_versions = LxKernelCve.parse_affected_versions(cvedata.get('affected_versions', 'unk to unk'))
+        self.last_affected_version = cvedata.get('last_affected_version', self.affected_versions[1])
 
-        # hash commits
+        # commits info
         self.breaks = cvedata.get('breaks', '')
         self.fixes = cvedata.get('fixes', '')
+        self.cmt_msg = cvedata.get('cmt_msg', '')
 
         self.last_modified = cvedata.get('last_modified', '')
         self.nvd_text = cvedata.get('nvd_text', '')
@@ -42,20 +50,23 @@ class LxKernelCve:
         return prefix + self.id
 
 
-    def fixed_files(self) -> list[str]:
+    def fixed_files(self, requests_timeout: int = 0) -> list[str]:
         if self.fixes == '':
             return []
 
         url = 'https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit?id='
+        try:
 
-        soup = BeautifulSoup(requests.get(url + self.fixes).text, 'html.parser') # TODO errors handling
+            soup = BeautifulSoup(requests.get(url + self.fixes, timeout=requests_timeout).text, 'html.parser') # TODO errors handling
 
-        diffstat = soup.find('table', { 'class': 'diffstat' })
+            diffstat = soup.find('table', { 'class': 'diffstat' })
 
-        def _get_file(row) -> str:
-            return row.find('td', { 'class': 'upd' }).string.strip()
+            def _get_file(row) -> str:
+                return row.find('td', { 'class': 'upd' }).string.strip()
 
-        return [ _get_file(row) for row in diffstat.find_all('tr', recursive=False) ]
+            return [ _get_file(row) for row in diffstat.find_all('tr', recursive=False) ]
+        except ConnectionError as e:
+            return []
 
 
     cve_source = 'https://raw.githubusercontent.com/nluedtke/linux_kernel_cves/master/data/kernel_cves.json'

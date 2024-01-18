@@ -10,7 +10,12 @@ def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser('list_fixed_files')
     p.add_argument('cve', help='CVE id')
 
-    p.add_argument('-q', '--brief', action='store_true')
+    p.add_argument('-q', '--brief', action='store_true',
+                   help='Print only info messages')
+
+    default_timeout = 5 # secs
+    p.add_argument('-t', '--timeout', type=int, default=default_timeout,
+        help=f'Connect and read timeout, default {default_timeout} seconds')
     return p
 
 
