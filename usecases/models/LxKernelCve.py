@@ -19,10 +19,14 @@ class LxKernelCve:
 
 
     def __init__(self, cveid: str, cvedata: dict):
-        self.id = cveid.lstrip('CVE-')
+        self.id = cveid.lstrip('dd=').lstrip('CVE-') # TODO: 'dd=' resolve
         # affected versions info
         self.affected_versions = LxKernelCve.parse_affected_versions(cvedata.get('affected_versions', 'unk to unk'))
         self.last_affected_version = cvedata.get('last_affected_version', self.affected_versions[1])
+
+        self.backport = cvedata.get('backport', False)
+
+        self.cwe = cvedata.get('cwe', 'Other')
 
         # commits info
         self.breaks = cvedata.get('breaks', '')
@@ -31,6 +35,10 @@ class LxKernelCve:
 
         self.last_modified = cvedata.get('last_modified', '')
         self.nvd_text = cvedata.get('nvd_text', '')
+
+        self.reserved_year = int(self.id.split('-', 1)[0])
+
+        # TODO: parse cvss3 and cvss2
 
 
     def cve(self) -> str:

@@ -14,6 +14,8 @@ def parser() -> argparse.ArgumentParser:
                    help='Print only warning/error messages')
     p.add_argument('-d', '--debug', type=str,
                    help='Check only one CVE')
+    p.add_argument('-y', '--year', action='store_true',
+                   help='Print also the year when CVE id was reserved')
     return p
 
 
@@ -84,9 +86,15 @@ def is_network_cve(lxKernelCve: LxKernelCve) -> bool:
         or is_files_about_network(lxKernelCve.fixed_files())
 
 
+def cve_fmt(year: bool, lxKernelCve: LxKernelCve) -> str:
+    prefix = (str(lxKernelCve.reserved_year) + ' ') if year else ''
+    return prefix + lxKernelCve.cve()
+
+
 def main() -> int:
     args = parser().parse_args()
-    should_count, brief, debug_cve = args.count, args.brief, args.debug
+    should_count, brief, debug_cve, year \
+        = args.count, args.brief, args.debug, args.year
     logging.getLogger().setLevel('WARNING' if brief else 'INFO')
 
     if not LxKernelCve.loadDb():
@@ -99,6 +107,8 @@ def main() -> int:
         if not lxKernelCve:
             logging.error(f'cannot found vaulnerability by CVE: {debug_cve}')
             return ENOENT
+        if year:
+            print(lxKernelCve.reserved_year, end=' ')
         print(debug_cve, is_network_cve(lxKernelCve))
         return 0
 
@@ -106,8 +116,8 @@ def main() -> int:
     if should_count:
         print(len(netLxKernelCve))
     else:
-        for cveid in map(LxKernelCve.cve, netLxKernelCve):
-            print(cveid)
+        for info in map(lambda cve: cve_fmt(year, cve), netLxKernelCve):
+            print(info)
     return 0
 
 
