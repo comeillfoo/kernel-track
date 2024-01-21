@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
+import requests, json, signal
 from typing import Tuple
-import requests, json
 from bs4 import BeautifulSoup
 
+
+def _req_timeout_handler(signum, frame):
+    raise TimeoutError()
 
 class LxKernelCve:
     @classmethod
@@ -50,14 +53,15 @@ class LxKernelCve:
         return prefix + self.id
 
 
-    def fixed_files(self, requests_timeout: int = 0) -> list[str]:
+    def fixed_files(self, requests_timeout: int = 3) -> list[str]:
         if self.fixes == '':
             return []
 
         url = 'https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit?id='
         try:
-
-            soup = BeautifulSoup(requests.get(url + self.fixes, timeout=requests_timeout).text, 'html.parser') # TODO errors handling
+            signal.signal(signal.SIGALRM, _req_timeout_handler)
+            signal.alarm(requests_timeout)
+            soup = BeautifulSoup(requests.get(url + self.fixes).text, 'html.parser') # TODO errors handling
 
             diffstat = soup.find('table', { 'class': 'diffstat' })
 
@@ -65,8 +69,10 @@ class LxKernelCve:
                 return row.find('td', { 'class': 'upd' }).string.strip()
 
             return [ _get_file(row) for row in diffstat.find_all('tr', recursive=False) ]
-        except ConnectionError as e:
+        except Exception as e:
             return []
+        finally:
+            signal.alarm(0)
 
 
     cve_source = 'https://raw.githubusercontent.com/nluedtke/linux_kernel_cves/master/data/kernel_cves.json'
@@ -80,7 +86,16 @@ class LxKernelCve:
         cls.db[cveid] = LxKernelCve(cveid, cvedata)
 
     @classmethod
-    def loadDb(cls):
-        kernel_cves = json.loads(requests.get(cls.cve_source).text) # TODO errors handling
-        for cveid, cvedata in kernel_cves.items():
-            LxKernelCve.insert(cveid, cvedata)
+    def loadDb(cls) -> bool:
+        try:
+            kernel_cves = json.loads(requests.get(cls.cve_source).text) # TODO errors handling
+            for cveid, cvedata in kernel_cves.items():
+                LxKernelCve.insert(cveid, cvedata)
+            return True
+        except Exception as e:
+            return False
+
+    @classmethod
+    def toList(cls) -> list:
+        return list(cls.db.values())
+

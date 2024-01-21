@@ -1,6 +1,8 @@
 beautifulsoup4==4.12.2
 certifi==2023.11.17
 charset-normalizer==3.3.2
+dnspython==2.5.0
+greenlet==3.0.3
 idna==3.6
 requests==2.31.0
 soupsieve==2.5
