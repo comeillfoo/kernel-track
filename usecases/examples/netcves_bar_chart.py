@@ -40,7 +40,7 @@ def main() -> int:
     ax.spines['bottom'].set_color('#DDDDDD')
 
     # Second, remove the ticks as well.
-    ax.tick_params(bottom=False, left=False)
+    ax.tick_params(bottom=False, left=False, labelsize=14)
 
     # Third, add a horizontal grid (but keep the vertical grid hidden).
     # Color the lines a light gray as well.
@@ -61,15 +61,18 @@ def main() -> int:
             round(bar.get_height(), 1),
             horizontalalignment='center',
             color=bar_color,
-            weight='bold'
+            weight='bold',
+            fontsize=20,
         )
 
     # Add labels and a title. Note the use of `labelpad` and `pad` to add some
     # extra space between the text and the tick labels.
-    ax.set_xlabel('Год обнаружения уязвимостей', labelpad=15, color='#333333')
-    ax.set_ylabel('Число уязвимостей', labelpad=15, color='#333333')
-    ax.set_title('Найденное число уязвимостей по годам [2003-2023]', pad=15,
-                 color='#333333', weight='bold')
+    ax.set_xlabel('Год обнаружения уязвимостей', labelpad=5, color='#333333',
+                  fontsize=20)
+    ax.set_ylabel('Число уязвимостей в сетевых протоколах', labelpad=5,
+                  color='#333333', fontsize=20)
+    ax.set_title('Найденное число уязвимостей в сетевых протоколах по годам [2003-2023]',
+                 pad=5, color='#333333', weight='bold', fontsize=20)
 
     fig.tight_layout()
     plt.show()
