@@ -17,7 +17,7 @@ def read_cve_csv(file: str) -> dict:
 
 
 def main() -> int:
-    netcves_by_years = read_cve_csv('netcves_by_years.csv')
+    netcves_by_years = read_cve_csv('netcves_by_years-2010.csv')
     netcves_by_years.pop('2024', None) # remove current year because of no data
 
     # Set default figure size.
@@ -67,12 +67,21 @@ def main() -> int:
 
     # Add labels and a title. Note the use of `labelpad` and `pad` to add some
     # extra space between the text and the tick labels.
-    ax.set_xlabel('Год обнаружения уязвимостей', labelpad=5, color='#333333',
-                  fontsize=20)
-    ax.set_ylabel('Число уязвимостей в сетевых протоколах', labelpad=5,
-                  color='#333333', fontsize=20)
-    ax.set_title('Найденное число уязвимостей в сетевых протоколах по годам [2003-2023]',
-                 pad=5, color='#333333', weight='bold', fontsize=20)
+    x_label = 'Год обнаружения уязвимостей'
+    x_label = 'The year of vulnerability discovery'
+
+    ax.set_xlabel(x_label, labelpad=5, color='#333333', fontsize=20)
+
+    y_label = 'Число уязвимостей в сетевых протоколах'
+    y_label = 'The number of vulnerabilities in network protocols'
+    ax.set_ylabel(y_label, labelpad=5, color='#333333', fontsize=20)
+
+    years_start = min(netcves_by_years)
+    years_end = max(netcves_by_years)
+    title = 'Найденное число уязвимостей в сетевых протоколах по годам'
+    title = 'The number of vulnerabilities found in network protocols per year'
+    ax.set_title(f'{title} [{years_start}-{years_end}]', pad=5,
+                 color='#333333', weight='bold', fontsize=20)
 
     fig.tight_layout()
     plt.show()
