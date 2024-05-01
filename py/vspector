@@ -1,0 +1,142 @@
+#!/usr/bin/env python3
+import click
+import pathlib
+
+
+@click.group()
+@click.option('-l', '--login', required=True,
+              help='User login')
+@click.option('-p', '--password', required=True,
+              help='User password')
+@click.pass_context
+def main(ctx, login: str, password: str):
+    ctx.ensure_object(dict)
+
+    ctx.obj['login'] = login
+    ctx.obj['password'] = password
+
+
+################################################################################
+# Commands for modules management
+################################################################################
+@main.group()
+@click.option('-C', '--modules-dir', 'modules',
+              default=pathlib.Path('./modules'),
+              type=click.Path(exists=True, dir_okay=True),
+              help='Path to modules', show_default=True)
+def module(modules: pathlib.Path):
+    pass
+
+
+@module.command('load')
+@click.argument('name', nargs=-1)
+@click.pass_context
+def module_load(ctx, name: list[str]):
+    pass
+
+
+@module.command('unload')
+@click.argument('name', nargs=-1)
+@click.pass_context
+def module_unload(ctx, name: list[str]):
+    pass
+
+
+@module.command('poll')
+@click.argument('name', nargs=-1)
+@click.pass_context
+def module_poll(ctx, name: list[str]):
+    pass
+
+
+@module.command('info')
+@click.argument('name', nargs=-1)
+@click.pass_context
+def module_info(ctx, name: list[str]):
+    pass
+
+
+################################################################################
+# Commands for vulnerabilities management
+################################################################################
+@main.group()
+def vulnerability():
+    pass
+
+
+################################################################################
+# Commands for reports management
+################################################################################
+@main.group()
+def report():
+    pass
+
+
+################################################################################
+# Commands for projects management
+################################################################################
+@main.group()
+@click.argument('name')
+@click.pass_context
+def project(ctx, name: str):
+    ctx.obj['project'] = name
+
+
+@project.command('add')
+@click.pass_context
+def project_add(ctx):
+    pass
+
+
+@project.command('delete')
+@click.pass_context
+def project_delete(ctx):
+    pass
+
+
+################################################################################
+# Commands for projects/versions management
+################################################################################
+@project.group()
+@click.argument('name')
+@click.pass_context
+def version(ctx, name: str):
+    ctx.obj['version'] = name
+
+
+@version.command('add')
+@click.pass_context
+def version_add(ctx):
+    pass
+
+
+@version.command('delete')
+@click.pass_context
+def version_delete(ctx):
+    pass
+
+
+################################################################################
+# Commands for projects/versions/components management
+################################################################################
+@version.group()
+@click.argument('name')
+@click.pass_context
+def component(ctx, name: str):
+    ctx.obj['component'] = name
+
+
+@component.command('add')
+@click.pass_context
+def component_add(ctx):
+    pass
+
+
+@component.command('delete')
+@click.pass_context
+def component_delete(ctx):
+    pass
+
+
+if __name__ == '__main__':
+    main(obj={})

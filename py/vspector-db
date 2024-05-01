@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+import click
+import pathlib
+import sys
+
+from backends import SUPPORTED_BACKENDS
+
+
+@click.group()
+def main():
+    pass
+
+
+################################################################################
+# Commands for database management
+################################################################################
+@main.command()
+@click.argument('backend', type=click.Choice(SUPPORTED_BACKENDS))
+@click.option('-o', '--output', type=click.Path(), default=pathlib.Path('./config.toml'),
+              show_default=True, help='Destination where to store config')
+def config(backend: str, output: pathlib.Path):
+    modname = '.'.join([ 'backends', backend ])
+    try:
+        backend_inst = sys.modules[modname]
+        print(backend_inst.Database.config_template)
+    except Exception as e:
+        print(f'Failed to configure backend \'{backend}\'', e)
+
+
+@main.command()
+def init():
+    pass
+
+
+@main.command()
+def ping():
+    pass
+
+
+if __name__ == '__main__':
+    main()
