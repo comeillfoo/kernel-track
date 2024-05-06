@@ -16,7 +16,7 @@ def _specs(parent: str, file: str) -> Tuple[str, str]:
 
 for backend_file in os.listdir(BACKENDS_DIR):
     if not backend_file.endswith('py'):
-        print(f'Ignore \'{backend_file}\' is not a python-module')
+        # print(f'Ignore \'{backend_file}\' is not a python-module')
         continue
     try:
         modname, modpath = _specs(BACKENDS_DIR, backend_file)
