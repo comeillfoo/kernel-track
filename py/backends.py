@@ -2,7 +2,10 @@
 import importlib.util
 import sys
 import os
-from typing import Tuple
+import pathlib
+
+from typing import Tuple, Optional
+from types import ModuleType
 
 
 SUPPORTED_BACKENDS=[]
@@ -28,3 +31,16 @@ for backend_file in os.listdir(BACKENDS_DIR):
         SUPPORTED_BACKENDS.append(backend_inst.Database.name)
     except Exception as e:
         print(f'Failed to load backend \'{backend_file}\'', e)
+
+
+DEFAULT_CONFIG_PATH = pathlib.Path('./config.toml')
+
+def get_backend(backend: Optional[str]) -> ModuleType:
+    if backend is None or backend not in SUPPORTED_BACKENDS:
+        print(f'Invalid backend: {backend} not supported')
+        raise Exception
+    backend_inst = sys.modules.get('.'.join([ 'backends', backend ]), None)
+    if backend_inst is None:
+        print(f'Failed to get backend {backend}')
+        raise Exception
+    return backend_inst

@@ -1,6 +1,26 @@
 #!/usr/bin/env python3
 import click
 import pathlib
+import toml
+import getpass
+
+import backends
+
+
+DEFAULT_CONFIG_PATH = pathlib.Path('./config.toml')
+
+
+CONFIG={}
+
+
+def load_config(path: str):
+    global CONFIG
+    CONFIG = toml.load(path)
+
+
+def db():
+    return backends.get_backend(CONFIG['BACKEND']) \
+        .Database(CONFIG)
 
 
 @click.group()
@@ -8,13 +28,23 @@ import pathlib
               help='User login')
 @click.option('-p', '--password', required=True,
               help='User password')
+@click.option('-F', '--config', type=click.Path(), default=DEFAULT_CONFIG_PATH,
+              show_default=True, help='Path to config as source')
 @click.pass_context
-def main(ctx, login: str, password: str):
+def main(ctx, login: str, password: str, config: str):
     ctx.ensure_object(dict)
 
-    ctx.obj['login'] = login
-    ctx.obj['password'] = password
+    load_config(config)
+    if not db().authenticate(login, password):
+        print('User', login, 'not authenticated')
+        raise click.Abort
+    ctx.obj['user'] = login
 
+
+def abort_on_unprivileged(ctx):
+    if not db().authorize(ctx.obj['user']):
+        print('User', ctx.obj['user'], 'have not enough privileges')
+        raise click.Abort
 
 ################################################################################
 # Commands for modules management
@@ -24,8 +54,9 @@ def main(ctx, login: str, password: str):
               default=pathlib.Path('./modules'),
               type=click.Path(exists=True, dir_okay=True),
               help='Path to modules', show_default=True)
-def module(modules: pathlib.Path):
-    pass
+@click.pass_context
+def module(ctx, modules: pathlib.Path):
+    abort_on_unprivileged(ctx)
 
 
 @module.command('load')
@@ -141,7 +172,54 @@ def component_delete(ctx):
 ################################################################################
 # Commands for users management
 ################################################################################
-# TODO: describe
+@main.group()
+@click.pass_context
+def user(ctx):
+    abort_on_unprivileged(ctx)
+
+
+USERS_ROLES = [
+    'user',
+    'admin',
+]
+
+@user.command('add')
+@click.option('-r', '--role', type=click.Choice(USERS_ROLES),
+              default=USERS_ROLES[0], show_default=True,
+              help='What role new user will be given')
+@click.argument('login')
+def user_add(login: str, role: str):
+    if not db().add_user(login, getpass.getpass(f'Password {login}: '), role):
+        print('Failed to create user:', login)
+        raise click.Abort
+    print('User', login, 'created')
+
+
+@user.command('delete')
+@click.argument('login')
+def user_delete(login: str):
+    if not db().delete_user(login):
+        print('Failed to delete user:', login)
+        raise click.Abort
+    print('User', login, 'deleted')
+
+
+@user.command('change-password')
+@click.argument('login')
+def user_change_password(login: str):
+    pass
+
+
+@user.command('promote')
+@click.argument('login')
+def user_promote(login: str):
+    pass
+
+
+@user.command('demote')
+@click.argument('login')
+def user_demote(login: str):
+    pass
 
 
 if __name__ == '__main__':

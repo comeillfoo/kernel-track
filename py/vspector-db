@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 import click
 import pathlib
-import sys
 import toml
 
-from typing import Optional
-from types import ModuleType
 
-from backends import SUPPORTED_BACKENDS
+from backends import SUPPORTED_BACKENDS, DEFAULT_CONFIG_PATH, get_backend
 
 
 @click.group()
@@ -18,26 +15,13 @@ def main():
 ################################################################################
 # Commands for database management
 ################################################################################
-DEFAULT_CONFIG_PATH = pathlib.Path('./config.toml')
-
-def _get_backend(backend: Optional[str]) -> ModuleType:
-    if backend is None or backend not in SUPPORTED_BACKENDS:
-        print(f'Invalid backend: {backend} not supported')
-        raise Exception
-    backend_inst = sys.modules.get('.'.join([ 'backends', backend ]), None)
-    if backend_inst is None:
-        print(f'Failed to get backend {backend}')
-        raise Exception
-    return backend_inst
-
-
 @main.command()
 @click.argument('backend', type=click.Choice(SUPPORTED_BACKENDS))
 @click.option('-o', '--output', type=click.Path(), default=DEFAULT_CONFIG_PATH,
               show_default=True, help='Destination where to store config')
 def config(backend: str, output: pathlib.Path):
     try:
-        backend_inst = _get_backend(backend)
+        backend_inst = get_backend(backend)
         with open(output, 'w') as config:
             config.write(backend_inst.Database.config_template)
     except Exception as e:
@@ -51,7 +35,7 @@ def init(config: pathlib.Path):
     try:
         config = toml.load(config)
         backend_type = config.get('BACKEND', None)
-        backend_inst = _get_backend(backend_type)
+        backend_inst = get_backend(backend_type)
         db = backend_inst.Database(config)
         db.init()
     except Exception as e:
@@ -65,7 +49,7 @@ def ping(config: pathlib.Path):
     try:
         config = toml.load(config)
         backend_type = config.get('BACKEND', None)
-        backend_inst = _get_backend(backend_type)
+        backend_inst = get_backend(backend_type)
         db = backend_inst.Database(config)
         is_pong = db.ping()
         if not is_pong:
