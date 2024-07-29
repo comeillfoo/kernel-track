@@ -8,6 +8,11 @@ from typing import Optional
 from functools import reduce
 
 
+def _encrypt(string: str) -> str:
+    return b64.b64encode(str.encode(string, encoding='utf-8')) \
+        .decode(encoding='utf-8')
+
+
 class Database:
     name='fs'
     config_template='''BACKEND = 'fs'
@@ -55,11 +60,6 @@ PATH = '{path-to-database-folder}'
         table_obj.pop(row, None)
         return self._dump_table(table, table_obj)
 
-
-    def _encrypt(self, string: str) -> str:
-        return b64.b64encode(str.encode(string, encoding='utf-8')) \
-            .decode(encoding='utf-8')
-
     def init(self):
         os.makedirs(self.db)
         for _, tfile in self.tables.items():
@@ -70,7 +70,7 @@ PATH = '{path-to-database-folder}'
         # create default user
         self.update_entry('users', 'admin', {
             'role': 'admin',
-            'pwd': self._encrypt('admin')
+            'pwd': _encrypt('admin')
         })
         print('created default admin user admin:admin, '
               'consider taking appropriate changes')
